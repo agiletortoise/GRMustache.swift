@@ -36,7 +36,7 @@ class SuiteTestCase: XCTestCase {
         
         let data: Data! = try? Data(contentsOf: URL(fileURLWithPath: path))
         if data == nil {
-            XCTFail("No test suite in \(path)")
+            XCTFail("No test suite in \(String(describing: path))")
             return
         }
         
@@ -44,7 +44,7 @@ class SuiteTestCase: XCTestCase {
         
         let tests = testSuite["tests"] as! NSArray?
         if tests == nil {
-            XCTFail("Missing tests in \(path)")
+            XCTFail("Missing tests in \(String(describing: path))")
             return
         }
         
