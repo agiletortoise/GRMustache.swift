@@ -132,27 +132,32 @@ class VariadicFilterTests: XCTestCase {
         ]
         let template = try! Template(string:"{{{ f(foo,\"%Y-%m-%d\") }}}")
         let rendering = try! template.render(value)
-        XCTAssertEqual(rendering, "foo,\"bar\"")
+        XCTAssertEqual(rendering, "foo,%Y-%m-%d")
     }
     
-    func testVariadicFilterFallbackValues() {
+    func testVariadicFilterFallbackDoubleValue() {
         let value: [String: Any] = [
             "f": VariadicFilter { (boxes) -> Any? in
                 var correct = true
-                if boxes[0].value as? String == nil {
-                    correct = false
-                }
-                if boxes[1].value as? Bool == nil {
-                    correct = false
-                }
-                if boxes[2].value as? Int == nil {
+                if boxes[0].value as? Double == nil {
                     correct = false
                 }
                 return correct ? "correct" : "incorrect"
             }
         ]
-        let template = try! Template(string:"{{{ f(\"string\", true, 3) }}}")
+        let template = try! Template(string:"{{{ f(2.34) }}}")
         let rendering = try! template.render(value)
         XCTAssertEqual(rendering, "correct")
+    }
+    
+    func testVariadicFilterFallbackStringValue() {
+        let value: [String: Any] = [
+            "f": VariadicFilter { (boxes) -> Any? in
+                boxes.map{ return $0.value as! String }.joined(separator: ",")
+            }
+        ]
+        let template = try! Template(string:"{{{ f(\"test\", \"test.dot\") }}}")
+        let rendering = try! template.render(value)
+        XCTAssertEqual(rendering, "test,test.dot")
     }
 }

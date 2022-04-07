@@ -71,7 +71,42 @@ struct ExpressionInvocation {
         case .scoped(let baseExpression, let identifier):
             // {{ <expression>.identifier }}
             
-            return try evaluate(context: context, expression: baseExpression).mustacheBox(forKey: identifier)
+            let box = try evaluate(context: context, expression: baseExpression).mustacheBox(forKey: identifier)
+            if !allowingFallbackValue {
+                return box
+            }
+            else if !box.isEmpty {
+                return box
+            }
+            else {
+                switch baseExpression {
+                case .identifier(let baseIdentifier):
+                    let tempIdentifier = "\(baseIdentifier).\(identifier)"
+                    if tempIdentifier.first == "\"", tempIdentifier.last == "\"" { // treat as string
+                        var trimmed = tempIdentifier
+                        trimmed.removeFirst()
+                        trimmed.removeLast()
+                        return Box(trimmed)
+                    }
+                    else if tempIdentifier == "true" {
+                        return Box(true)
+                    }
+                    else if tempIdentifier == "false" {
+                        return Box(false)
+                    }
+                    else if let ix = Int(tempIdentifier) {
+                        return Box(ix)
+                    }
+                    else if let ix = Double(tempIdentifier) {
+                        return Box(ix)
+                    }
+                    else {
+                        return Box(tempIdentifier)
+                    }
+                default:
+                    return box
+                }
+            }
             
         case .filter(let filterExpression, let argumentExpression, let partialApplication):
             // {{ <expression>(<expression>) }}
