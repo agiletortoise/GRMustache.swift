@@ -30,7 +30,7 @@ struct ExpressionInvocation {
         return try evaluate(context: context, expression: expression)
     }
     
-    fileprivate func evaluate(context: Context, expression: Expression) throws -> MustacheBox {
+    fileprivate func evaluate(context: Context, expression: Expression, allowingFallbackValue: Bool = false) throws -> MustacheBox {
         switch expression {
         case .implicitIterator:
             // {{ . }}
@@ -40,7 +40,33 @@ struct ExpressionInvocation {
         case .identifier(let identifier):
             // {{ identifier }}
             
-            return context.mustacheBox(forKey: identifier)
+            let box = context.mustacheBox(forKey: identifier)
+            if !allowingFallbackValue {
+                return box
+            }
+            else if box.isEmpty { // pass fallback value
+                if identifier.first == "\"", identifier.last == "\"" { // treat as string
+                    var trimmed = identifier
+                    trimmed.removeFirst()
+                    trimmed.removeLast()
+                    return Box(trimmed)
+                }
+                else if identifier == "true" {
+                    return Box(true)
+                }
+                else if identifier == "false" {
+                    return Box(false)
+                }
+                else if let ix = Int(identifier) {
+                    return Box(ix)
+                }
+                else {
+                    return Box(identifier)
+                }
+            }
+            else {
+                return box
+            }
 
         case .scoped(let baseExpression, let identifier):
             // {{ <expression>.identifier }}
@@ -60,7 +86,7 @@ struct ExpressionInvocation {
                 }
             }
             
-            let argumentBox = try evaluate(context: context, expression: argumentExpression)
+            let argumentBox = try evaluate(context: context, expression: argumentExpression, allowingFallbackValue: true)
             return try Box(filter(argumentBox, partialApplication))
         }
     }
