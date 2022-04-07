@@ -270,8 +270,9 @@ class FilterTests: XCTestCase {
         rendering = try! template.render(["x": "A" as NSString])
         XCTAssertEqual(rendering, "AA")
         
-        rendering = try! template.render(nil)
-        XCTAssertEqual(rendering, "Nil")
+        // No longer applicable if param fallback is allowed.
+//        rendering = try! template.render(nil)
+//        XCTAssertEqual(rendering, "Nil")
         
         rendering = try! template.render(["x": NSNull()])
         XCTAssertEqual(rendering, "Nil")

@@ -195,14 +195,14 @@ class HookFunctionTests: XCTestCase {
         XCTAssertEqual(willRenderCount, 1)
         XCTAssertEqual((renderedValue!.value as! String), "bar")
         
-        template = try! Template(string: "{{filter(subject)}}")
-        template.baseContext = template.baseContext.extendedContext(willRender)
-        willRenderCount = 0
-        renderedValue = nil
-        rendering = try! template.render(["filter": Filter(filter)])
-        XCTAssertEqual(rendering, "")
-        XCTAssertEqual(willRenderCount, 1)
-        XCTAssertTrue(renderedValue!.isEmpty)
+//        template = try! Template(string: "{{filter(subject)}}")
+//        template.baseContext = template.baseContext.extendedContext(willRender)
+//        willRenderCount = 0
+//        renderedValue = nil
+//        rendering = try! template.render(["filter": Filter(filter)])
+//        XCTAssertEqual(rendering, "")
+//        XCTAssertEqual(willRenderCount, 1)
+//        XCTAssertTrue(renderedValue!.isEmpty)
         
         template = try! Template(string: "{{filter(subject)}}")
         template.baseContext = template.baseContext.extendedContext(willRender)
