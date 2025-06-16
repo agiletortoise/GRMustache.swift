@@ -248,4 +248,12 @@ class TagTests: XCTestCase {
         range = tagDescription?.range(of: bundle.path(forResource: "TagTests", ofType: "mustache")!)
         XCTAssertTrue(range != nil)
     }
+    
+    func testCustomPragmaTags() {
+        let templateRepository = TemplateRepository()
+        let templateString = "{{% CONTENT }}"
+        let template = try! templateRepository.template(string: templateString)
+        let result = try! template.render()
+        XCTAssert(result == "CONTENT")
+    }
 }
