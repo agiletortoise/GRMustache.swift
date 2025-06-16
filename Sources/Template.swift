@@ -32,9 +32,10 @@ final public class Template {
     /// Creates a template from a template string.
     /// 
     /// - parameter string: The template string.
+    /// - parameter configuration: The configuration for rendering. If the configuration is not specified, `Configuration.default` is used.
     /// - throws: MustacheError
-    public convenience init(string: String) throws {
-        let repository = TemplateRepository()
+    public convenience init(string: String, configuration: Configuration = .default) throws {
+        let repository = TemplateRepository(configuration: configuration)
         let templateAST = try repository.templateAST(string: string)
         self.init(repository: repository, templateAST: templateAST, baseContext: repository.configuration.baseContext)
     }
@@ -49,13 +50,14 @@ final public class Template {
     /// 
     /// - parameter path: The path to the template file.
     /// - parameter encoding: The encoding of the template file.
+    /// - parameter configuration: The configuration for rendering. If the configuration is not specified, `Configuration.default` is used.
     /// - throws: MustacheError
-    public convenience init(path: String, encoding: String.Encoding = String.Encoding.utf8) throws {
+    public convenience init(path: String, encoding: String.Encoding = String.Encoding.utf8, configuration: Configuration = .default) throws {
         let nsPath = path as NSString
         let directoryPath = nsPath.deletingLastPathComponent
         let templateExtension = nsPath.pathExtension
         let templateName = (nsPath.lastPathComponent as NSString).deletingPathExtension
-        let repository = TemplateRepository(directoryPath: directoryPath, templateExtension: templateExtension, encoding: encoding)
+        let repository = TemplateRepository(directoryPath: directoryPath, templateExtension: templateExtension, encoding: encoding, configuration: configuration)
         let templateAST = try repository.templateAST(named: templateName)
         self.init(repository: repository, templateAST: templateAST, baseContext: repository.configuration.baseContext)
     }
@@ -70,16 +72,39 @@ final public class Template {
     /// 
     /// - parameter URL: The URL of the template.
     /// - parameter encoding: The encoding of the template resource.
+    /// - parameter configuration: The configuration for rendering. If the configuration is not specified, `Configuration.default` is used.
     /// - throws: MustacheError
-    public convenience init(URL: Foundation.URL, encoding: String.Encoding = String.Encoding.utf8) throws {
+    public convenience init(URL: Foundation.URL, encoding: String.Encoding = String.Encoding.utf8, configuration: Configuration = .default) throws {
         let baseURL = URL.deletingLastPathComponent()
         let templateExtension = URL.pathExtension
         let templateName = (URL.lastPathComponent as NSString).deletingPathExtension
-        let repository = TemplateRepository(baseURL: baseURL, templateExtension: templateExtension, encoding: encoding)
+        let repository = TemplateRepository(baseURL: baseURL, templateExtension: templateExtension, encoding: encoding, configuration: configuration)
         let templateAST = try repository.templateAST(named: templateName)
         self.init(repository: repository, templateAST: templateAST, baseContext: repository.configuration.baseContext)
     }
-    
+
+    /// Creates a template from the contents of a URL.
+    ///
+    /// Eventual partial tags in the template refer to sibling templates using
+    /// the same extension.
+    ///
+    ///     // `{{>partial}}` in `file://path/to/template.txt` loads `file://path/to/partial.txt`:
+    ///     let template = try! Template(URL: "file://path/to/template.txt")
+    ///
+    /// - parameter URL: The URL of the template.
+    /// - parameter encoding: The encoding of the template resource.
+    /// - parameter configuration: The configuration for rendering. If the configuration is not specified, `Configuration.default` is used.
+    /// - throws: MustacheError
+    @available(iOS 15.0, macOS 12.0, tvOS 15.0, *)
+    public convenience init(URL: Foundation.URL, encoding: String.Encoding = .utf8, configuration: Configuration = .default) async throws {
+        let baseURL = URL.deletingLastPathComponent()
+        let templateExtension = URL.pathExtension
+        let templateName = (URL.lastPathComponent as NSString).deletingPathExtension
+        let repository = TemplateRepository(baseURL: baseURL, templateExtension: templateExtension, encoding: encoding, configuration: configuration)
+        let templateAST = try await repository.templateAST(named: templateName)
+        self.init(repository: repository, templateAST: templateAST, baseContext: repository.configuration.baseContext)
+    }
+
     /// Creates a template from a bundle resource.
     /// 
     /// Eventual partial tags in the template refer to template resources using
@@ -95,9 +120,10 @@ final public class Template {
     ///   the extension is assumed not to exist and the template file should
     ///   exactly match name.
     /// - parameter encoding: The encoding of template resource.
+    /// - parameter configuration: The configuration for rendering. If the configuration is not specified, `Configuration.default` is used.
     /// - throws: MustacheError
-    public convenience init(named name: String, bundle: Bundle? = nil, templateExtension: String? = "mustache", encoding: String.Encoding = String.Encoding.utf8) throws {
-        let repository = TemplateRepository(bundle: bundle, templateExtension: templateExtension, encoding: encoding)
+    public convenience init(named name: String, bundle: Bundle? = nil, templateExtension: String? = "mustache", encoding: String.Encoding = String.Encoding.utf8, configuration: Configuration = .default) throws {
+        let repository = TemplateRepository(bundle: bundle, templateExtension: templateExtension, encoding: encoding, configuration: configuration)
         let templateAST = try repository.templateAST(named: name)
         self.init(repository: repository, templateAST: templateAST, baseContext: repository.configuration.baseContext)
     }

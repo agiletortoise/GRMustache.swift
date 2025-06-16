@@ -106,8 +106,8 @@ final public class TemplateRepository {
     /// 
     ///     let repository = TemplateRepository()
     ///     let template = try! repository.template(string: "Hello {{name}}")
-    public init(dataSource: TemplateRepositoryDataSource? = nil) {
-        configuration = DefaultConfiguration
+    public init(dataSource: TemplateRepositoryDataSource? = nil, configuration: Configuration = .default) {
+        self.configuration = configuration
         templateASTCache = [:]
         self.dataSource = dataSource
     }
@@ -123,8 +123,9 @@ final public class TemplateRepository {
     /// 
     /// - parameter templates: A dictionary whose keys are template names and
     ///   values template strings.
-    convenience public init(templates: [String: String]) {
-        self.init(dataSource: DictionaryDataSource(templates: templates))
+    /// - parameter configuration: The configuration for rendering. If the configuration is not specified, `Configuration.default` is used.
+    convenience public init(templates: [String: String], configuration: Configuration = .default) {
+        self.init(dataSource: DictionaryDataSource(templates: templates), configuration: configuration)
     }
     
     /// Creates a TemplateRepository that loads templates from a directory.
@@ -160,8 +161,9 @@ final public class TemplateRepository {
     ///   extension is "mustache".
     /// - parameter encoding: The encoding of template files. Default encoding
     ///   is UTF-8.
-    convenience public init(directoryPath: String, templateExtension: String? = "mustache", encoding: String.Encoding = String.Encoding.utf8) {
-        self.init(dataSource: URLDataSource(baseURL: URL(fileURLWithPath: directoryPath, isDirectory: true), templateExtension: templateExtension, encoding: encoding))
+    /// - parameter configuration: The configuration for rendering. If the configuration is not specified, `Configuration.default` is used.
+    convenience public init(directoryPath: String, templateExtension: String? = "mustache", encoding: String.Encoding = String.Encoding.utf8, configuration: Configuration = .default) {
+        self.init(dataSource: URLDataSource(baseURL: URL(fileURLWithPath: directoryPath, isDirectory: true), templateExtension: templateExtension, encoding: encoding), configuration: configuration)
     }
     
     /// Creates a TemplateRepository that loads templates from a URL.
@@ -197,8 +199,9 @@ final public class TemplateRepository {
     ///   Default extension is "mustache".
     /// - parameter encoding: The encoding of template resources. Default
     ///   encoding is UTF-8.
-    convenience public init(baseURL: URL, templateExtension: String? = "mustache", encoding: String.Encoding = String.Encoding.utf8) {
-        self.init(dataSource: URLDataSource(baseURL: baseURL, templateExtension: templateExtension, encoding: encoding))
+    /// - parameter configuration: The configuration for rendering. If the configuration is not specified, `Configuration.default` is used.
+    convenience public init(baseURL: URL, templateExtension: String? = "mustache", encoding: String.Encoding = String.Encoding.utf8, configuration: Configuration = .default) {
+        self.init(dataSource: URLDataSource(baseURL: baseURL, templateExtension: templateExtension, encoding: encoding), configuration: configuration)
     }
     
     /// Creates a TemplateRepository that loads templates stored as resources in
@@ -215,8 +218,9 @@ final public class TemplateRepository {
     ///   Default extension is "mustache".
     /// - parameter encoding: The encoding of template resources. Default
     ///   encoding is UTF-8.
-    convenience public init(bundle: Bundle?, templateExtension: String? = "mustache", encoding: String.Encoding = String.Encoding.utf8) {
-        self.init(dataSource: BundleDataSource(bundle: bundle ?? Bundle.main, templateExtension: templateExtension, encoding: encoding))
+    /// - parameter configuration: The configuration for rendering. If the configuration is not specified, `Configuration.default` is used.
+    convenience public init(bundle: Bundle?, templateExtension: String? = "mustache", encoding: String.Encoding = String.Encoding.utf8, configuration: Configuration = .default) {
+        self.init(dataSource: BundleDataSource(bundle: bundle ?? Bundle.main, templateExtension: templateExtension, encoding: encoding), configuration: configuration)
     }
     
     
@@ -340,7 +344,45 @@ final public class TemplateRepository {
             throw error
         }
     }
-    
+
+    @available(iOS 15.0, macOS 12.0, tvOS 15.0, *)
+    func templateAST(named name: String, relativeToTemplateID baseTemplateID: TemplateID? = nil) async throws -> TemplateAST {
+        guard let dataSource = self.dataSource else {
+            throw MustacheError(kind: .templateNotFound, message: "Missing dataSource", templateID: baseTemplateID)
+        }
+
+        guard let templateID = dataSource.templateIDForName(name, relativeToTemplateID: baseTemplateID) else {
+            if let baseTemplateID = baseTemplateID {
+                throw MustacheError(kind: .templateNotFound, message: "Template not found: \"\(name)\" from \(baseTemplateID)", templateID: baseTemplateID)
+            } else {
+                throw MustacheError(kind: .templateNotFound, message: "Template not found: \"\(name)\"")
+            }
+        }
+
+        if let templateAST = templateASTCache[templateID] {
+            // Return cached AST
+            return templateAST
+        }
+
+        let templateString = try await dataSource.templateStringForTemplateID(templateID)
+
+        // Cache an empty AST for that name so that we support recursive
+        // partials.
+        let templateAST = TemplateAST()
+        templateASTCache[templateID] = templateAST
+
+        do {
+            let compiledAST = try self.templateAST(string: templateString, templateID: templateID)
+            // Success: update the empty AST
+            templateAST.updateFromTemplateAST(compiledAST)
+            return templateAST
+        } catch {
+            // Failure: remove the empty AST
+            templateASTCache.removeValue(forKey: templateID)
+            throw error
+        }
+    }
+
     func templateAST(string: String, templateID: TemplateID? = nil) throws -> TemplateAST {
         // A Compiler
         let compiler = TemplateCompiler(
@@ -443,8 +485,9 @@ final public class TemplateRepository {
             } else {
                 templateBaseURL = self.baseURL
             }
-            
-            let templateURL = URL(string: templateFilename, relativeTo: templateBaseURL)!.standardizedFileURL
+
+            let encodedURLPath = templateFilename.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed)!
+            let templateURL = URL(string: encodedURLPath, relativeTo: templateBaseURL)!.standardizedFileURL
             let templateAbsoluteString = templateURL.absoluteString
             
             // Make sure partial relative paths can not escape repository root
@@ -457,6 +500,13 @@ final public class TemplateRepository {
         
         func templateStringForTemplateID(_ templateID: TemplateID) throws -> String {
             return try NSString(contentsOf: URL(string: templateID)!, encoding: encoding.rawValue) as String
+        }
+
+        @available(iOS 15.0, macOS 12.0, tvOS 15.0, *)
+        func templateStringForTemplateID(_ templateID: TemplateID) async throws -> String {
+            let (data, _) = try await URLSession.shared.data(from: URL(string: templateID)!)
+
+            return (NSString(data: data, encoding: encoding.rawValue) ?? "") as String
         }
     }
     

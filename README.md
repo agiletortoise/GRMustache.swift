@@ -1,17 +1,18 @@
-GRMustache.swift [![Swift](https://img.shields.io/badge/swift-5-orange.svg?style=flat)](https://developer.apple.com/swift/) [![Platforms](https://img.shields.io/cocoapods/p/GRMustache.swift.svg)](https://developer.apple.com/swift/) [![License](https://img.shields.io/github/license/groue/GRMustache.swift.svg?maxAge=2592000)](/LICENSE)
+GRMustache.swift [![Swift](https://img.shields.io/badge/swift-6-orange.svg?style=flat)](https://developer.apple.com/swift/) [![Platforms](https://img.shields.io/cocoapods/p/GRMustache.swift.svg)](https://developer.apple.com/swift/) [![License](https://img.shields.io/github/license/groue/GRMustache.swift.svg?maxAge=2592000)](/LICENSE)
 ================
 
 ### Mustache templates for Swift
 
-**Latest release**: October 23, 2016 &bull; version 2.0.0 &bull; [CHANGELOG](CHANGELOG.md)
+**Latest release**: August 19, 2024 &bull; version 5.0.0 &bull; [CHANGELOG](https://github.com/groue/GRMustache.swift/releases)
 
-**Requirements**: iOS 8.0+ / OSX 10.9+ / tvOS 9.0+ &bull; Xcode 8+ &bull; Swift 3
+**Requirements**: iOS 8.0+ / OSX 10.10+ / tvOS 9.0+ &bull; Xcode 16+ &bull; Swift 5
 
 - Swift 2.2: use the [version 1.0.1](https://github.com/groue/GRMustache.swift/tree/1.0.1)
 - Swift 2.3: use the [version 1.1.0](https://github.com/groue/GRMustache.swift/tree/1.1.0)
-- Swift 4.0: use the [version 3.0.0](https://github.com/fumito-ito/GRMustache.swift/tree/3.0.0)
-- Swift 4.2: use the [version 3.1.0](https://github.com/fumito-ito/GRMustache.swift/tree/3.1.0)
-- Swift 5.0: use the [version 4.0.0](https://github.com/fumito-ito/GRMustache.swift/tree/4.0.0)
+- Swift 4.0: use the [version 3.0.0](https://github.com/groue/GRMustache.swift/tree/3.0.0)
+- Swift 4.2: use the [version 3.1.0](https://github.com/groue/GRMustache.swift/tree/3.1.0)
+- Swift 5.0: use the [version 4.0.0](https://github.com/groue/GRMustache.swift/tree/4.0.0)
+- Swift 5.0: use the [version 6.0.0](https://github.com/groue/GRMustache.swift/tree/6.0.0) or later
 
 Follow [@groue](http://twitter.com/groue) on Twitter for release announcements and usage tips.
 
@@ -117,19 +118,20 @@ The [Swift Package Manager](https://swift.org/package-manager/) is the open sour
 To use GRMustache.swift with the Swift Package Manager, add https://github.com/groue/GRMustache.swift to the list of your package dependencies:
 
 ```swift
-import PackageDescription
-
-let package = Package(
-    name: "MyPackage",
-    targets: [],
-    dependencies: [
-        .Package(url: "https://github.com/groue/GRMustache.swift", majorVersion: 2, minor: 0),
-    ]
-)
+dependencies: [
+    .package(url: "https://github.com/groue/GRMustache.swift", from: "6.0.0")
+]
 ```
 
-Check [groue/GRMustacheSPM](https://github.com/groue/GRMustacheSPM) for a sample Swift package that uses GRMustache.swift.
+Add `Mustache` to your target:
 
+```swift
+targets: [
+    .target(
+        name: "MyTool",
+        dependencies: ["Mustache"])
+]
+```
 
 ### Manually
 
@@ -139,7 +141,7 @@ Check [groue/GRMustacheSPM](https://github.com/groue/GRMustacheSPM) for a sample
     
     ```sh
     cd [GRMustache.swift directory]
-    git checkout 2.0.0
+    git checkout 6.0.0
     ````
     
 3. Embed the `Mustache.xcodeproj` project in your own project.
